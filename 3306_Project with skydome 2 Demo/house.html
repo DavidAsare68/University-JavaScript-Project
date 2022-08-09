@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>House</title>
+		<style>
+
+			body { margin: 0;  }
+		</style>
+	</head>
+	<body>
+		<span style="position:absolute;top:50px;right:0px;color:white;"><br/>WASD to move Q to go up E to move down.<br/>Arrow keys to turn.</span>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.min.js'></script>
+		<script type="text/javascript" src="../MTLLoader.js" ></script>
+		<script type="text/javascript" src="../OBJLoader.js" ></script>
+
+<script>// Project by David Asare, Dhruvil Jasani, Ryan Bell</script>
+		<script type="x-shader/x-vertex" id="vertexShader">
+
+void main()
+{
+	vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+	gl_Position = projectionMatrix * modelViewPosition;
+
+}
+</script>
+
+
+<script type="application/x-glsl" id="sky-vertex">
+varying vec2 vUV;
+
+void main() {
+  vUV = uv;
+  vec4 pos = vec4(position, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+}
+</script>
+
+<script type="application/x-glsl" id="sky-fragment">
+uniform sampler2D texture;
+varying vec2 vUV;
+
+void main() {
+  vec4 sample = texture2D(texture, vUV);
+  gl_FragColor = vec4(sample.xyz, sample.w);
+}
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentShader">
+void main() {
+//	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+	gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0); //Blue fragment color for sphere decoration
+
+}
+</script>
+
+
+
+		<script >
+
+
+
+
+    var scene, cam, rend,orbControl, house,decorationCube1,decorationCube2,sofa,flyControls//Declaring variables to be used.
+
+var keys = {};
+var control = { height:1.8,speed:10.2, turnCam:Math.PI*0.02};
+
+
+function init(){
+	scene = new THREE.Scene();
+	cam = new THREE.PerspectiveCamera(90, 1980/1080, 0.1, 3000);
+
+
+  cam.position.set(0, control.height, -5);
+	cam.lookAt(new THREE.Vector3(0,control.height,0));
+
+	rend = new THREE.WebGLRenderer({antialias: true});
+	rend.setSize(1980, 1080);
+	document.body.appendChild(rend.domElement);
+////////////////////////////////////////////////////////////////////////////
+	//Setting up a blue floating sphere for decoration using a shader
+  const decorationSphere1 = new THREE.Mesh(
+ 	new THREE.SphereGeometry(3,32,32),
+ 	new THREE.ShaderMaterial({
+ 		vertexShader: document.getElementById('vertexShader').textContent,
+ 		fragmentShader: document.getElementById('fragmentShader').textContent,
+
+ 	})
+  );
+  decorationSphere1.position.set(50,9,-245);
+  decorationSphere1.castShadow=true;
+  scene.add(decorationSphere1);
+
+
+//Object Loader for the house.
+				var mtl = new THREE.MTLLoader();
+										mtl.load("OBJMods/HouseDesign.mtl",function(materials){
+											materials.preload();
+
+											var obj = new THREE.OBJLoader();
+											obj.setMaterials(materials);
+											obj.load("OBJMods/HouseDesign.obj",function(house){
+												scene.add(house);
+												house.position.set(-23.5, -2, -2);
+												house.scale.set(1,2,2);
+												house.rotation.y = -Math.PI/-0.8;
+
+											});
+										});
+
+		//Setting up the sofa object with added pillow objects joined together using blender app.
+		var mtl = new THREE.MTLLoader();
+								mtl.load("OBJMods/sofaDesign.mtl",function(materials){
+									materials.preload();
+
+									var obj = new THREE.OBJLoader();
+									obj.setMaterials(materials);
+									obj.load("OBJMods/sofaDesign.obj",function(house){
+										scene.add(house);
+										house.position.set(-33.5, -2, -2);
+										house.scale.set(10,10,10);
+										house.rotation.y = -Math.PI/-0.8;
+
+									});
+								});
+//Setting a point light for living room.
+								var	light = new THREE.PointLight(0xffffff, 0.8, 18);
+
+								light.position.set(3,3,-3);
+
+								light.castShadow = true;
+								light.shadow.camera.near = 0.1;
+								light.shadow.camera.far = 35;
+								scene.add(light);
+		/* Setting up table next to sofa using the pottedPlant OBJ and tableCoffeeGlass OBJ
+			which we joined together using the blender app. We called the obj tableDesign. */
+			var mtl = new THREE.MTLLoader();
+									mtl.load("OBJMods/tableDesign.mtl",function(materials){
+										materials.preload();
+
+										var obj = new THREE.OBJLoader();
+										obj.setMaterials(materials);
+										obj.load("OBJMods/tableDesign.obj",function(house){
+											scene.add(house);
+											house.position.set(3.5, -2, -12);
+											house.scale.set(20,20,20);
+											house.rotation.y = -Math.PI/-0.8;
+
+										});
+									});
+		//Setting up tvModern OBJ on the table OBJ joined together.
+		var mtl = new THREE.MTLLoader();
+								mtl.load("OBJMods/tvSetup.mtl",function(materials){
+									materials.preload();
+
+									var obj = new THREE.OBJLoader();
+									obj.setMaterials(materials);
+									obj.load("OBJMods/tvSetup.obj",function(house){
+										scene.add(house);
+										house.position.set(70.5, -2, 105);
+										house.scale.set(15,15,15);
+										house.rotation.y = Math.PI/4;
+
+									});
+								});
+
+
+/* When setting up the deskConer obj, we joined the lampRound, computerScreen and laptop
+ objects in blender app. We then called the joined obj deskDesign */
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/deskDesign.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/deskDesign.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-70.5, 0, -320);
+								 house.scale.set(10,10,10);
+								 house.rotation.y = -Math.PI/-0.8;
+
+							 });
+						 });
+
+
+// Making a point light for the lamp on the table.
+	var	pointLight = new THREE.PointLight(0xffffff, 5.8, 18);
+
+	pointLight.position.set(-67.5,25,-348);
+scene.add(pointLight);
+
+/*var helper = new THREE.PointLightHelper(pointLight);
+scene.add(helper); */
+
+//Setting up a chair OBJ next to the deskDesign OBJ.
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/chairDesk.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/chairDesk.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-30.5, 0, -300);
+								 house.scale.set(40,40,40);
+								 house.rotation.y = -Math.PI/-0.8;
+
+							 });
+						 });
+
+//Setting up the stove object
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/kitchenStove.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/kitchenStove.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-317.5, 0, 0);
+								 house.scale.set(35,35,35);
+								 house.rotation.y =181.4;
+
+							 });
+						 });
+//Setting up kitchen sink object
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/kitchenSink.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/kitchenSink.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-295.5, 0, -120);
+								 house.scale.set(35,35,35);
+								 house.rotation.y =110.8;
+
+							 });
+						 });
+
+//Setting up the kitchen fridge object
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/kitchenFridgeLarge.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/kitchenFridgeLarge.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-360.5, 0, -63);
+								 house.scale.set(35,35,35);
+								 house.rotation.y =110.8;
+
+							 });
+						 });
+
+//Setting up a table with cloth
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/tableCloth.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/tableCloth.obj",function(house){
+								 scene.add(house);
+								 house.position.set(-290.5, 0, -50);
+								 house.scale.set(35,35,35);
+								 house.rotation.y =110.8;
+
+							 });
+						 });
+
+
+
+
+//Setting up a bed obj.
+var mtl = new THREE.MTLLoader();
+						 mtl.load("OBJMods/bedSingle.mtl",function(materials){
+							 materials.preload();
+
+							 var obj = new THREE.OBJLoader();
+							 obj.setMaterials(materials);
+							 obj.load("OBJMods/bedSingle.obj",function(house){
+								 scene.add(house);
+								 house.position.set(200.5, 0, -100);
+								 house.scale.set(40,40,40);
+								 //house.rotation.y = -Math.PI/-0.8;
+								 house.rotation.y = Math.PI/4;
+
+							 });
+						 });
+
+
+
+
+	//Loading textures
+	 var texture = new THREE.TextureLoader();
+	 space1	= texture.load('textures/Background-1.png'); //Background of outer space
+	 space1.generateMipmaps = false;
+	 space1.minFilter = THREE.LinearFilter; //using minFilter to take away the blur of the image
+	 space1.needsUpdate = true;
+
+//Setting up a cube for decoration
+  decorationCube1 = new THREE.Mesh(
+		new THREE.BoxGeometry(20,25,19),
+		new THREE.MeshBasicMaterial({color:0xffffff, map:space1})
+
+	);
+	decorationCube1.position.set(-10.5,9,220);//positioning decorationCube1
+	scene.add(decorationCube1);
+
+//Setting up the second cube for decoration
+	var texture = new THREE.TextureLoader();
+	space2	= texture.load('textures/Background-2.png'); //Background of outer space
+	space2.generateMipmaps = false;
+	space2.minFilter = THREE.LinearFilter; //using minFilter to take away the blur of the image
+	space2.needsUpdate = true;
+
+//Setting up a cube for decoration
+ decorationCube2 = new THREE.Mesh(
+	 new THREE.BoxGeometry(20,25,19),
+	 new THREE.MeshBasicMaterial({color:0xffffff, map:space2})
+ );
+ decorationCube2.position.set(-50.5,9,220);//positioning decorationCube2
+ scene.add(decorationCube2);
+
+
+
+
+
+
+		// AmbientLighting for the room
+		ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+			scene.add(ambientLight);
+
+
+
+//adding the skydome
+
+var geometry = new THREE.SphereGeometry(850, 60, 40);
+var uniforms = {
+  texture: { type: 't', value: THREE.ImageUtils.loadTexture('/textures/skydome.jpg') }
+};
+
+var material = new THREE.ShaderMaterial( {
+  uniforms:       uniforms,
+  vertexShader:   document.getElementById('sky-vertex').textContent,
+  fragmentShader: document.getElementById('sky-fragment').textContent
+});
+
+skyBox = new THREE.Mesh(geometry, material);
+skyBox.material.side = THREE.DoubleSide;
+skyBox.scale.set(-1, 1, 1);
+skyBox.eulerOrder = 'XZY';
+skyBox.renderDepth = 100.0;
+scene.add(skyBox);
+
+
+
+
+
+//Setting up the ground
+  var geometry = new THREE.PlaneGeometry( 1200, 1200, 1200, 1200 );//Setting up the size of the floor
+var material = new THREE.MeshBasicMaterial( { color: 0x6E260E } ); //Color of the floor is brown
+var ground = new THREE.Mesh( geometry, material );
+ground.material.side = THREE.DoubleSide;
+ground.rotation.x -= Math.PI/2;
+ground.position.y=-8;
+scene.add( ground );
+
+	animation();
+}
+
+function animation(){
+	requestAnimationFrame(animation);
+
+	if(keys[37]){ //The left arrow key button
+		cam.rotation.y -= control.turnCam;
+	}
+	if(keys[39]){ //The right arrow key button
+		cam.rotation.y += control.turnCam;
+	}
+  if (keys[87]) { // W key button
+    cam.position.x -= Math.sin(cam.rotation.y)*control.speed;
+    cam.position.z -= -Math.cos(cam.rotation.y)*control.speed;
+  }
+
+  if (keys[83]) { // S key button
+    cam.position.x += Math.sin(cam.rotation.y)*control.speed;
+    cam.position.z += -Math.cos(cam.rotation.y)*control.speed;
+  }
+
+  if (keys[65]) { // A key button
+    cam.position.x += Math.sin(cam.rotation.y + Math.PI/2)*control.speed;
+    cam.position.z += -Math.cos(cam.rotation.y + Math.PI/2 )*control.speed;
+  }
+  if (keys[68]) { // D key button
+    cam.position.x += Math.sin(cam.rotation.y - Math.PI/2)*control.speed;
+    cam.position.z += -Math.cos(cam.rotation.y - Math.PI/2)*control.speed;
+  }
+	if (keys[81]) { //Q key button to move up
+		cam.position.y += control.speed;
+	}
+	if (keys[69]) {//E key button to move down
+		cam.position.y -= control.speed;
+	}
+	rend.render(scene, cam);
+}
+
+function keyDown(event){
+	keys[event.keyCode] = true;
+}
+
+function keyUp(event){
+	keys[event.keyCode] = false;
+}
+
+window.addEventListener('keydown', keyDown);
+window.addEventListener('keyup', keyUp);
+
+
+
+window.onload = init;
+		</script>
+	</body>
+</html>

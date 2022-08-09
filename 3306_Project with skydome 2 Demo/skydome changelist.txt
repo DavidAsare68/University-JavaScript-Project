@@ -1,0 +1,1 @@
+Digi Remote Manager is a software suite that offers a single point of command and control, along with system-wide monitoring that includes dashboards to view performance metrics, and automated alerts for specific conditions and thresholds.
